@@ -5,37 +5,35 @@
 
 struct element_info element_info_empty(void) {
     return (struct element_info) {
-        .id = NULL,
+        .id = -1,
         .ptr = NULL,
     };
 }
 
 void collection_for_each(struct collection* collection, void* target, foreach_handler handler) {
-    if (!collection->has_next(target, NULL)) { return; }
-
     struct element_info curr = element_info_empty(); 
-    while (collection->has_next(target, &curr.id)) {
-        curr = collection->next(target, &curr.id);
+    while (collection->has_next(target, curr.id)) {
+        curr = collection->next(target, curr.id);
         handler(curr.ptr);
     }
 }
 
-void* to_array(struct mapped_collection* mcollection, void* target) {
+void* to_array(struct mapped_collection* mcollection) {
+    void* target = mcollection->target;
     struct collection* collection = mcollection->collection;
 
     size_t length = collection->length(target);
     if (length <= 0) { return NULL; }
-    if (!collection->has_next(target, NULL)) { return NULL; }
 
     map_handler mapper = mcollection->mapper;
-    void* arr = malloc(mcollection->mapped_type_size * length);
+    void* arr = malloc(mcollection->dst_elem_size * length);
 
     size_t i = 0;
     struct element_info curr = element_info_empty(); 
-    while (collection->has_next(target, &curr.id)) {
-        curr = collection->next(target, &curr.id);
+    while (collection->has_next(target, curr.id)) {
+        curr = collection->next(target, curr.id);
 
-        void* mapped_ptr = (char*) arr + i * mcollection->mapped_type_size; 
+        void* mapped_ptr = (char*) arr + i * mcollection->dst_elem_size; 
         mapper(curr.ptr, mapped_ptr);
 
         i += 1;
@@ -45,11 +43,11 @@ void* to_array(struct mapped_collection* mcollection, void* target) {
 }
 
 struct mapped_collection collection_map(struct collection* collection, void* target, map_handler mapper,
-            size_t mapped_type_size) {
+            size_t dst_elem_size) {
     return (struct mapped_collection) {
         .collection = collection,
         .target = target,
         .mapper = mapper,
-        .mapped_type_size = mapped_type_size,
+        .dst_elem_size = dst_elem_size,
     };
 }

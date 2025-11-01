@@ -12,13 +12,13 @@ struct element_info {
 };
 
 typedef void(*foreach_handler)(void* element);
-typedef void(*map_handler)(void* element, void* mapped_ptr);
+typedef void(*map_handler)(void* element, void* dst);
 
 typedef size_t(*length_handler)(void* target);
-typedef bool (*has_next_handler)(void* target, element_id* id);
+typedef bool (*has_next_handler)(void* target, element_id id);
 
 typedef struct element_info (*first_handler)(void* target);
-typedef struct element_info (*next_handler)(void* target, element_id* id);
+typedef struct element_info (*next_handler)(void* target, element_id id);
 
 struct collection {
     length_handler length;
@@ -29,7 +29,7 @@ struct collection {
 };
 
 struct mapped_collection {
-    size_t mapped_type_size;
+    size_t dst_elem_size;
     map_handler mapper;
     void* target;
 
@@ -37,3 +37,7 @@ struct mapped_collection {
 };
 
 void collection_for_each(struct collection* collection, void* target, foreach_handler handler);
+
+struct mapped_collection collection_map(struct collection* collection, void* target,
+        map_handler mapper, size_t dst_elem_size);
+void* to_array(struct mapped_collection* mcollection); 

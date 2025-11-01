@@ -7,14 +7,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool array_has_next(void* c, element_id* id) {
-    struct array* arr = (struct array*) c;
+size_t array_length(void* target) {
+    struct array* arr = (struct array*) target;
+    return arr->length;
+}
 
-    if (id == NULL) {
+bool array_has_next(void* target, element_id id) {
+    struct array* arr = (struct array*) target;
+
+    if (id == -1) {
         return arr->length != 0;
     }
 
-    return arr->capacity - 1 > *id;
+    return arr->capacity - 1 > id;
 }
 
 void* array_get(size_t idx, struct array* arr) {
@@ -36,17 +41,17 @@ struct element_info array_first(void* array) {
     return first;
 }
 
-struct element_info array_next(void* array, element_id* id) {
+struct element_info array_next(void* array, element_id id) {
     if (!array_has_next(array, id)) {
         printf("Array called next but has_next is false\n");
         abort();
     }
 
-    if (id == NULL) { return array_first(array); }
+    if (id == -1) { return array_first(array); }
 
     struct array* arr = (struct array*) array;
     size_t element_size = arr->element_size;
-    element_id idx = *id + 1;
+    element_id idx = id + 1;
 
     struct element_info next = {
         .id = idx,
@@ -61,13 +66,12 @@ struct collection array_collection(void) {
         .first = array_first,
         .next = array_next,
         .has_next = array_has_next,
+        .length = array_length,
     };
 
     return collection;
 }
 
-// @warning: the element is copied
-// @returns: the address of the inserted element
 void* array_add(void* elem, struct array* arr) {
     void* dest = array_get(arr->length, arr);
     arr->length += 1;

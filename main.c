@@ -1,10 +1,16 @@
 #include "array.h"
 #include "collection.h"
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 void handler(void* element) {
-    printf("HELLO: %p\n", element);
+    printf("Element is: %p\n", element);
+}
+
+void mapper(void* element, void* dst) {
+    int32_t* ptr = element;
 }
 
 int main(void) {
@@ -18,6 +24,13 @@ int main(void) {
     printf("Array has size %zu/%zu\n", a.length, a.capacity);
 
     collection_for_each(&a.collection, &a, handler);
+
+    struct mapped_collection mcol = collection_map(&a.collection, &a, mapper, sizeof(int32_t));
+    int32_t* arr = to_array(&mcol);
+
+    for (int i = 0; i < 3; i++) {
+        printf("Elem is %d\n", arr[i]);
+    }
 
     return 0;
 }

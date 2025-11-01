@@ -21,5 +21,5 @@ void* array_get(size_t idx, struct array* arr);
 
 struct collection array_collection(void);
 struct element_info array_first(void* c);
-struct element_info array_next(void* array, element_id* id);
-bool array_has_next(void* c, element_id* id);
+struct element_info array_next(void* array, element_id id);
+bool array_has_next(void* c, element_id id);
