@@ -18,7 +18,7 @@ void collection_for_each(struct collection* collection, void* target, foreach_ha
     }
 }
 
-void* to_array(struct mapped_collection* mcollection) {
+void* collection_to_array(struct mapped_collection* mcollection) {
     void* target = mcollection->target;
     struct collection* collection = mcollection->collection;
 

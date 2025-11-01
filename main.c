@@ -26,7 +26,7 @@ int main(void) {
     collection_for_each(&a.collection, &a, handler);
 
     struct mapped_collection mcol = collection_map(&a.collection, &a, mapper, sizeof(int32_t));
-    int32_t* arr = to_array(&mcol);
+    int32_t* arr = collection_to_array(&mcol);
 
     for (int i = 0; i < 3; i++) {
         printf("Elem is %d\n", arr[i]);

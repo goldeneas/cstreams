@@ -40,4 +40,4 @@ void collection_for_each(struct collection* collection, void* target, foreach_ha
 
 struct mapped_collection collection_map(struct collection* collection, void* target,
         map_handler mapper, size_t dst_elem_size);
-void* to_array(struct mapped_collection* mcollection); 
+void* collection_to_array(struct mapped_collection* mcollection); 
