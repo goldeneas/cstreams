@@ -1,0 +1,28 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wpedantic",
+      "-o",
+      "build/main",
+      "array.c"
+    ],
+    "directory": "/home/nicola/Workspace/C/cstreams",
+    "file": "/home/nicola/Workspace/C/cstreams/array.c",
+    "output": "/home/nicola/Workspace/C/cstreams/build/main"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wpedantic",
+      "-o",
+      "build/main",
+      "main.c"
+    ],
+    "directory": "/home/nicola/Workspace/C/cstreams",
+    "file": "/home/nicola/Workspace/C/cstreams/main.c",
+    "output": "/home/nicola/Workspace/C/cstreams/build/main"
+  }
+]
