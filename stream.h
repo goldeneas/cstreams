@@ -11,12 +11,14 @@ typedef void(*foreach_handler)(void* src);
 struct stream{
     void* state;
     void* (*next)(void* state);
+
+    void (*increment_state)(void* state);
 };
 
 struct stream_op {
-    struct stream_op* downstream;
     void* op_state;
-    func_ptr handler;
+    void* (*process)(void* curr, void* op_state);
+    void (*cleanup)(void* op_state);
 };
 
 struct stream_op* stream_map(struct stream_op* downstream, map_handler handler,
