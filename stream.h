@@ -8,11 +8,20 @@ typedef bool(*filter_handler)(void* src);
 
 typedef void(*foreach_handler)(void* src);
 
+typedef void* (*next_handler)(void* state);
+typedef void (*increment_state_handler)(void* state);
+
+struct stream_op_node {
+    struct stream_op* op;
+    struct stream_op_node* next;
+};
+
 struct stream{
     void* state;
-    void* (*next)(void* state);
+    next_handler next;
+    increment_state_handler increment_state;
 
-    void (*increment_state)(void* state);
+    struct stream_op_node* ops;
 };
 
 struct stream_op {
@@ -21,9 +30,10 @@ struct stream_op {
     void (*cleanup)(void* op_state);
 };
 
-struct stream_op* stream_map(struct stream_op* downstream, map_handler handler,
-        size_t output_element_size);
-struct stream_op* stream_filter(struct stream_op* downstream, filter_handler handler);
+struct stream stream_init(void* state, next_handler next, increment_state_handler increment_state);
 
-void stream_for_each(struct stream* stream, struct stream_op* first, foreach_handler handler);
+void stream_map(struct stream* stream, map_handler handler, size_t output_element_size);
+void stream_filter(struct stream* stream, filter_handler handler);
+
+void stream_for_each(struct stream* stream, foreach_handler handler);
 
