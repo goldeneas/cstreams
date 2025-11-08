@@ -132,9 +132,10 @@ void stream_for_each(struct stream* stream, foreach_handler handler) {
     void* elem = stream->next(stream->state);
     while (elem != NULL) {
         void* result = stream_process_element(elem, stream);
-        if (result == NULL) { continue; }
 
-        handler(result);
+        if (result != NULL) {
+            handler(result);
+        }
 
         stream->increment_state(stream->state);
         elem = stream->next(stream->state);
