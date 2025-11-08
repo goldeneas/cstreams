@@ -11,6 +11,9 @@ This library provides a basic framework for processing sequences of data using a
 * **For Each**: A terminal operation to consume the stream.
 * **Extensible**: Use any data source by providing two simple functions.
 
+## How To Build
+This is a library, not a standalone executable; to use it, you just need to compile your main.c with cstreams.
+
 ## How To Use
 
 First, you need a data source. This can be an array, a list, a file, etc. You just need to provide two functions: `next_handler` and `increment_state_handler`.
