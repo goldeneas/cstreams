@@ -36,4 +36,4 @@ void stream_map(struct stream* stream, map_handler handler, size_t output_elemen
 void stream_filter(struct stream* stream, filter_handler handler);
 
 void stream_for_each(struct stream* stream, foreach_handler handler);
-
+void stream_to_array(struct stream* stream, void* array, size_t elem_size);

@@ -1,6 +1,8 @@
 #include "stream.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct map_state {
     void* output_slot;
@@ -135,6 +137,27 @@ void stream_for_each(struct stream* stream, foreach_handler handler) {
 
         if (result != NULL) {
             handler(result);
+        }
+
+        stream->increment_state(stream->state);
+        elem = stream->next(stream->state);
+    }
+
+    stream_cleanup(stream);
+}
+
+void stream_to_array(struct stream* stream, void* array, size_t elem_size) {
+    if (!stream) { return; }
+
+    size_t idx = 0;
+    void* elem = stream->next(stream->state);
+    while (elem != NULL) {
+        void* result = stream_process_element(elem, stream);
+
+        if (result != NULL) {
+            void* dst = (char*) array + idx * elem_size;
+            memcpy(dst, result, elem_size);
+            idx += 1;
         }
 
         stream->increment_state(stream->state);

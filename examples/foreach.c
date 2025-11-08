@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "stream.h" // Your header file
+#include "../stream.h" // Your header file
 
 /**
  * @brief The state for our array-based stream.
