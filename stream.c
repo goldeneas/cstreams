@@ -166,3 +166,23 @@ void stream_to_array(struct stream* stream, void* array, size_t elem_size) {
 
     stream_cleanup(stream);
 }
+
+size_t stream_count(struct stream* stream) {
+    if (!stream) { return 0; }
+
+    size_t count = 0;
+    void* elem = stream->next(stream->state);
+    while (elem != NULL) {
+        void* result = stream_process_element(elem, stream);
+
+        if (result != NULL) {
+            count += 1;
+        }
+
+        stream->increment_state(stream->state);
+        elem = stream->next(stream->state);
+    }
+
+    stream_cleanup(stream);
+    return count;
+}
