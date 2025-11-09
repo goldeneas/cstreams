@@ -232,6 +232,8 @@ void* stream_to_collection(struct stream* stream, void* (*init)(),
 // count
 
 void _count_consumer(void* element, void* state) {
+    (void) element;
+
     size_t* count = (size_t*) state;
     *count += 1;
 }
