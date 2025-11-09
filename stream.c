@@ -1,8 +1,11 @@
 #include "stream.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef bool (*stream_consumer)(void* element, void* ctx);
 
 // Generic stream handling functions
 
@@ -22,7 +25,7 @@ void stream_cleanup(struct stream* stream) {
     while (curr != NULL) {
         stream_op_cleanup(curr->op);
         next = curr->next;
-        
+
         free(curr);
         curr = next;
     }
@@ -34,7 +37,8 @@ struct stream stream_init(void* state, next_handler next,
         .state = state,
         .increment_state = increment_state,
         .next = next,
-        .ops = NULL
+        .ops = NULL,
+        .tail = NULL,
     };
 }
 
@@ -45,15 +49,12 @@ void stream_append_op(struct stream* stream, struct stream_op* op) {
 
     if (stream->ops == NULL) {
         stream->ops = node;
+        stream->tail = node;
         return;
     }
 
-    struct stream_op_node* curr = stream->ops;
-    while (curr->next != NULL) {
-        curr = curr->next;
-    }
-
-    curr->next = node;
+    stream->tail->next = node;
+    stream->tail = node;
 }
 
 // INTERMEDIATE OPERATIONS
@@ -118,6 +119,60 @@ void stream_filter(struct stream* stream, filter_handler handler) {
     stream_append_op(stream, op);
 }
 
+// limit functions
+
+struct limit_state {
+    size_t length;
+    size_t max_length;
+};
+
+void* stream_limit_process(void* curr, void* op_state) {
+    struct limit_state* state = (struct limit_state*) op_state;
+    if (state->length >= state->max_length) {
+        return NULL;
+    }
+
+    state->length += 1;
+    return curr;
+}
+
+void stream_limit(struct stream* stream, size_t max_length) {
+    struct limit_state* state = malloc(sizeof(struct limit_state));
+    state->length = 0;
+    state->max_length = max_length;
+
+    struct stream_op* op = malloc(sizeof(struct stream_op));
+    op->op_state = state;
+    op->process = stream_limit_process;
+    op->cleanup = NULL;
+
+    stream_append_op(stream, op);
+}
+
+// peek functions
+
+struct peek_state {
+    void (*peek_handler)(void* element);
+};
+
+void* stream_peek_process(void* curr, void* op_state) {
+    struct peek_state* state = (struct peek_state*) op_state;
+    state->peek_handler(curr);
+    return curr;
+}
+
+void stream_peek(struct stream* stream, void (*peek_handler)(void* element)) {
+    struct peek_state* state = malloc(sizeof(struct peek_state));
+    state->peek_handler = peek_handler;
+
+    struct stream_op* op = malloc(sizeof(struct stream_op));
+    op->op_state = state;
+    op->process = stream_peek_process;
+    op->cleanup = NULL;
+
+    stream_append_op(stream, op);
+}
+
 // UTIL FUNCTIONS
 
 void* stream_process_element(void* elem, struct stream* stream) {
@@ -138,7 +193,7 @@ void* stream_process_element(void* elem, struct stream* stream) {
     return result;
 }
 
-void stream_consume(struct stream* stream, void (*consumer)(void* result, void* ctx), void* ctx) {
+void stream_consume(struct stream* stream, stream_consumer consumer, void* ctx) {
     if (!stream || !consumer) { return; }
 
     void* elem = stream->next(stream->state);
@@ -146,7 +201,10 @@ void stream_consume(struct stream* stream, void (*consumer)(void* result, void* 
         void* result = stream_process_element(elem, stream);
 
         if (result != NULL) {
-            consumer(result, ctx);
+            bool should_continue = consumer(result, ctx);
+            if (!should_continue) {
+                break;
+            }
         }
 
         stream->increment_state(stream->state);
@@ -162,9 +220,11 @@ struct foreach_ctx {
     foreach_handler handler;
 };
 
-void _foreach_consume(void* element, void* ctx) {
+bool _foreach_consume(void* element, void* ctx) {
     struct foreach_ctx* c = (struct foreach_ctx*) ctx;
     c->handler(element);
+
+    return true;
 }
 
 void stream_for_each(struct stream* stream, foreach_handler handler) {
@@ -183,7 +243,7 @@ struct to_array_ctx {
     size_t idx;
 };
 
-void _to_array_consume(void* element, void* ctx) {
+bool _to_array_consume(void* element, void* ctx) {
     struct to_array_ctx* c = (struct to_array_ctx*) ctx;
     size_t* idx = &c->idx;
     void* array = c->array;
@@ -192,6 +252,8 @@ void _to_array_consume(void* element, void* ctx) {
     void* dst = (char*) array + (*idx) * elem_size;
     memcpy(dst, element, elem_size);
     *idx += 1;
+
+    return true;
 }
 
 void stream_to_array(struct stream* stream, void* array, size_t elem_size) {
@@ -211,9 +273,11 @@ struct to_collection_ctx {
     void (*add)(void* element, void* collection);
 };
 
-void _to_collection_consume(void* element, void* ctx) {
+bool _to_collection_consume(void* element, void* ctx) {
     struct to_collection_ctx* c = (struct to_collection_ctx*) ctx;
     c->add(element, c->collection);
+
+    return true;
 }
 
 void* stream_to_collection(struct stream* stream, void* (*init)(),
@@ -231,11 +295,12 @@ void* stream_to_collection(struct stream* stream, void* (*init)(),
 
 // count
 
-void _count_consumer(void* element, void* state) {
+bool _count_consumer(void* element, void* ctx) {
     (void) element;
 
-    size_t* count = (size_t*) state;
+    size_t* count = (size_t*) ctx;
     *count += 1;
+    return true;
 }
 
 size_t stream_count(struct stream* stream) {
@@ -243,4 +308,56 @@ size_t stream_count(struct stream* stream) {
     stream_consume(stream, _count_consumer, &count);
 
     return count;
-}   
+}
+
+// any_match
+
+struct any_match_ctx {
+    match_predicate predicate;
+    bool match;
+};
+
+bool _any_match_consumer(void* element, void* ctx) {
+    struct any_match_ctx* c = (struct any_match_ctx*) ctx;
+
+    if (!c->predicate(element)) { return true; }
+
+    c->match = true;
+    return false;
+}
+
+bool stream_any_match(struct stream* stream, match_predicate predicate) {
+    struct any_match_ctx ctx = {
+        .match = false,
+        .predicate = predicate,
+    };
+
+    stream_consume(stream, _any_match_consumer, &ctx);
+    return ctx.match;
+}
+
+// any_match
+
+struct all_match_ctx {
+    match_predicate predicate;
+    bool match;
+};
+
+bool _all_match_consumer(void* element, void* ctx) {
+    struct all_match_ctx* c = (struct all_match_ctx*) ctx;
+
+    if (c->predicate(element)) { return true; }
+
+    c->match = false;
+    return false;
+}
+
+bool stream_all_match(struct stream* stream, match_predicate predicate) {
+    struct all_match_ctx ctx = {
+        .match = true,
+        .predicate = predicate,
+    };
+
+    stream_consume(stream, _all_match_consumer, &ctx);
+    return ctx.match;
+}
