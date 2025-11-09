@@ -7,10 +7,8 @@ This library provides a basic framework for processing sequences of data using a
 ## Features
 
 * **Extensible**: Use any data source by providing two simple functions.
-* **Filter**: Filter elements based on a predicate.
-* **Map**: Transform elements from one value to another.
-* **For Each**: Terminal operation to execute an handler for each element in the stream.
-* **To Array**: Terminal operation to create a new array with the elements in the stream.
+* **Lazy Operations**: Intermediate operations are not executed until it is required.
+* **Generic**: Uses void* to allow custom types.
 
 ## How to Build
 This is a library, not a standalone executable; to use it, you just need to compile your main.c with cstreams.
