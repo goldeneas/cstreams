@@ -2,11 +2,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-typedef void(*func_ptr)(void);
-typedef void(*map_handler)(void* dst, void* src);
-typedef bool(*filter_handler)(void* src);
+typedef void(*map_handler)(void* dst, void* element);
+typedef bool(*filter_handler)(void* element);
 
-typedef void(*foreach_handler)(void* src);
+typedef void(*foreach_handler)(void* element);
 
 typedef void* (*next_handler)(void* state);
 typedef void (*increment_state_handler)(void* state);
