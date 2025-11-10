@@ -235,37 +235,6 @@ void stream_for_each(struct stream* stream, foreach_handler handler) {
     stream_consume(stream, _foreach_consume, &ctx);
 }
 
-// to_array
-
-struct to_array_ctx {
-    size_t elem_size;
-    void* array;
-    size_t idx;
-};
-
-bool _to_array_consume(void* element, void* ctx) {
-    struct to_array_ctx* c = (struct to_array_ctx*) ctx;
-    size_t* idx = &c->idx;
-    void* array = c->array;
-    size_t elem_size = c->elem_size;
-
-    void* dst = (char*) array + (*idx) * elem_size;
-    memcpy(dst, element, elem_size);
-    *idx += 1;
-
-    return true;
-}
-
-void stream_to_array(struct stream* stream, void* array, size_t elem_size) {
-    struct to_array_ctx ctx = {
-        .elem_size = elem_size,
-        .array = array,
-        .idx = 0,
-    };
-
-    stream_consume(stream, _to_array_consume, &ctx);
-}
-
 // to_collection
 
 struct to_collection_ctx {

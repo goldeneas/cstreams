@@ -41,7 +41,6 @@ void stream_peek(struct stream* stream, void (*peek_handler)(void* element));
 void stream_limit(struct stream* stream, size_t max_length);
 
 void stream_for_each(struct stream* stream, foreach_handler handler);
-void stream_to_array(struct stream* stream, void* array, size_t elem_size);
 void* stream_to_collection(struct stream* stream, void* (*init)(),
         void (*add)(void* elem, void* collection));
 size_t stream_count(struct stream* stream);
