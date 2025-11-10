@@ -33,6 +33,7 @@ struct stream_op {
 };
 
 struct stream stream_init(void* state, next_handler next, increment_state_handler increment_state);
+void stream_cleanup(struct stream* stream);
 
 void stream_map(struct stream* stream, map_handler handler, size_t output_element_size);
 void stream_filter(struct stream* stream, filter_handler handler);
