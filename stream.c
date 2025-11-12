@@ -7,6 +7,44 @@
 
 typedef bool (*stream_consumer)(void* element, void* ctx);
 
+struct vector_op {
+    size_t length;
+    size_t capacity;
+    struct stream_op* array;
+};
+
+// Vector functions
+
+struct vector_op vector_init(size_t capacity) {
+    return (struct vector_op) {
+        .length = 0,
+        .array = malloc(sizeof(struct stream_op) * capacity),
+        .capacity = capacity,
+    };
+}
+
+void vector_add(struct stream_op op, struct vector_op* vector) {
+    if (vector->length >= vector->capacity) {
+        size_t size = vector->capacity * sizeof(struct stream_op);
+        void* array = realloc(vector->array, size * 2);
+
+        if (array == NULL) {
+            perror("Could not realloc stream_op vector!");
+            abort();
+        }
+
+        vector->array = array;
+        vector->capacity *= 2;
+    }
+
+    vector->array[vector->length] = op;
+    vector->length += 1;
+}
+
+void vector_destroy(struct vector_op* vector) {
+    free(vector->array);
+}
+
 // Generic stream handling functions
 
 void stream_op_cleanup(struct stream_op* op) {
