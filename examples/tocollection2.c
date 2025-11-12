@@ -95,7 +95,8 @@ int main() {
     struct array_state source_state = {
         .data = my_data,
         .len = sizeof(my_data) / sizeof(my_data[0]),
-        .idx = 0};
+        .idx = 0
+    };
 
     struct stream s = stream_init(&source_state, array_next, array_increment);
 

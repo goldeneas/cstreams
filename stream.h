@@ -12,9 +12,10 @@ typedef void (*increment_state_handler)(void* state);
 
 typedef bool (*match_predicate)(void* element);
 
-struct stream_op_node {
-    struct stream_op* op;
-    struct stream_op_node* next;
+struct vector_op {
+    size_t length;
+    size_t capacity;
+    struct stream_op* array;
 };
 
 struct stream{
@@ -22,8 +23,7 @@ struct stream{
     next_handler next;
     increment_state_handler increment_state;
 
-    struct stream_op_node* ops;
-    struct stream_op_node* tail;
+    struct vector_op ops;
 };
 
 struct stream_op {

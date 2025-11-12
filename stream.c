@@ -7,15 +7,9 @@
 
 typedef bool (*stream_consumer)(void* element, void* ctx);
 
-struct vector_op {
-    size_t length;
-    size_t capacity;
-    struct stream_op* array;
-};
-
 // Vector functions
 
-struct vector_op vector_init(size_t capacity) {
+struct vector_op vector_op_init(size_t capacity) {
     return (struct vector_op) {
         .length = 0,
         .array = malloc(sizeof(struct stream_op) * capacity),
@@ -23,7 +17,7 @@ struct vector_op vector_init(size_t capacity) {
     };
 }
 
-void vector_add(struct stream_op op, struct vector_op* vector) {
+void vector_op_add(struct stream_op op, struct vector_op* vector) {
     if (vector->length >= vector->capacity) {
         size_t size = vector->capacity * sizeof(struct stream_op);
         void* array = realloc(vector->array, size * 2);
@@ -41,7 +35,7 @@ void vector_add(struct stream_op op, struct vector_op* vector) {
     vector->length += 1;
 }
 
-void vector_destroy(struct vector_op* vector) {
+void vector_op_destroy(struct vector_op* vector) {
     free(vector->array);
 }
 
@@ -53,20 +47,16 @@ void stream_op_cleanup(struct stream_op* op) {
     }
 
     free(op->op_state);
-    free(op);
 }
 
 void stream_cleanup(struct stream* stream) {
-    struct stream_op_node* next = NULL;
-    struct stream_op_node* curr = stream->ops;
+    struct vector_op* ops = &stream->ops;
 
-    while (curr != NULL) {
-        stream_op_cleanup(curr->op);
-        next = curr->next;
-
-        free(curr);
-        curr = next;
+    for (size_t i = 0; i < ops->length; i++) {
+        stream_op_cleanup(&ops->array[i]);
     }
+
+    free(ops->array);
 }
 
 struct stream stream_init(void* state, next_handler next,
@@ -75,24 +65,12 @@ struct stream stream_init(void* state, next_handler next,
         .state = state,
         .increment_state = increment_state,
         .next = next,
-        .ops = NULL,
-        .tail = NULL,
+        .ops = vector_op_init(5),
     };
 }
 
-void stream_append_op(struct stream* stream, struct stream_op* op) {
-    struct stream_op_node* node = malloc(sizeof(struct stream_op_node)); 
-    node->next = NULL;
-    node->op = op;
-
-    if (stream->ops == NULL) {
-        stream->ops = node;
-        stream->tail = node;
-        return;
-    }
-
-    stream->tail->next = node;
-    stream->tail = node;
+void stream_append_op(struct stream* stream, struct stream_op op) {
+    vector_op_add(op, &stream->ops);
 }
 
 // INTERMEDIATE OPERATIONS
@@ -123,10 +101,11 @@ void stream_map(struct stream* stream, map_handler handler,
     state->output_slot = malloc(output_element_size);
     state->mapper = handler;
 
-    struct stream_op* op = malloc(sizeof(struct stream_op));
-    op->op_state = state;
-    op->process = stream_map_process;
-    op->cleanup = stream_map_cleanup;
+    struct stream_op op = {
+        .op_state = state,
+        .process = stream_map_process,
+        .cleanup = stream_map_cleanup,
+    };
 
     stream_append_op(stream, op);
 } 
@@ -149,10 +128,11 @@ void stream_filter(struct stream* stream, filter_handler handler) {
     struct filter_state* state = malloc(sizeof(struct filter_state));
     state->filter = handler;
 
-    struct stream_op* op = malloc(sizeof(struct stream_op));
-    op->op_state = state;
-    op->process = stream_filter_process;
-    op->cleanup = NULL;
+    struct stream_op op = {
+        .op_state = state,
+        .process = stream_filter_process,
+        .cleanup = NULL,
+    };
 
     stream_append_op(stream, op);
 }
@@ -179,10 +159,11 @@ void stream_limit(struct stream* stream, size_t max_length) {
     state->length = 0;
     state->max_length = max_length;
 
-    struct stream_op* op = malloc(sizeof(struct stream_op));
-    op->op_state = state;
-    op->process = stream_limit_process;
-    op->cleanup = NULL;
+    struct stream_op op = {
+        .op_state = state,
+        .process = stream_limit_process,
+        .cleanup = NULL,
+    };
 
     stream_append_op(stream, op);
 }
@@ -203,10 +184,11 @@ void stream_peek(struct stream* stream, void (*peek_handler)(void* element)) {
     struct peek_state* state = malloc(sizeof(struct peek_state));
     state->peek_handler = peek_handler;
 
-    struct stream_op* op = malloc(sizeof(struct stream_op));
-    op->op_state = state;
-    op->process = stream_peek_process;
-    op->cleanup = NULL;
+    struct stream_op op = {
+        .op_state = state,
+        .process = stream_peek_process,
+        .cleanup = NULL,
+    };
 
     stream_append_op(stream, op);
 }
@@ -217,15 +199,13 @@ void* stream_process_element(void* elem, struct stream* stream) {
     if (!elem || !stream) { return NULL; }
 
     void* result = elem;
-    struct stream_op_node* curr = stream->ops;
+    struct vector_op* ops = &stream->ops;
 
-    while (curr != NULL) {
-        struct stream_op* op = curr->op;
+    for (size_t i = 0; i < ops->length; i++) {
+        struct stream_op* op = &ops->array[i];
         result = op->process(result, op->op_state);
-        
-        if (result == NULL) { break; }
 
-        curr = curr->next;
+        if (result == NULL) { break; }
     }
 
     return result;
